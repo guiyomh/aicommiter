@@ -1,0 +1,91 @@
+# yaml-language-server: $schema=https://golangci-lint.run/jsonschema/golangci.jsonschema.json
+run:
+  timeout: 5m
+  go: "1.23"
+linters:
+  disable-all: true
+  enable:
+    - bodyclose
+    - depguard
+    - dogsled
+    - dupl
+    - errcheck
+    - errorlint
+    - funlen
+    - gocheckcompilerdirectives
+    - gochecknoinits
+    - goconst
+    - gocritic
+    - gocyclo
+    - godox
+    - gofmt
+    - goimports
+    - goprintffuncname
+    - gosec
+    - gosimple
+    - govet
+    - intrange
+    - ineffassign
+    - lll
+    - misspell
+    - mnd
+    - nakedret
+    - noctx
+    - nolintlint
+    - revive
+    - rowserrcheck
+    - staticcheck
+    - stylecheck
+    - testifylint
+    - typecheck
+    - unconvert
+    - unparam
+    - unused
+    - whitespace
+    - gomodguard
+
+linters-settings:
+  depguard:
+    rules:
+      logger:
+        deny:
+          # logging is allowed only by logutils.Log,
+          - pkg: "github.com/sirupsen/logrus"
+            desc: logging is allowed only by logutils.Log.
+          - pkg: "github.com/pkg/errors"
+            desc: Should be replaced by standard lib errors package.
+          - pkg: "github.com/instana/testify"
+            desc: It's a fork of github.com/stretchr/testify.
+  dupl:
+    threshold: 100
+  funlen:
+    lines: -1 # the number of lines (code + empty lines) is not a right metric and leads to code without empty line or one-liner.
+    statements: 50
+  goconst:
+    min-len: 2
+    min-occurrences: 3
+  gocyclo:
+    min-complexity: 15
+  misspell:
+    locale: US
+  nolintlint:
+    allow-unused: false # report any unused nolint directives
+    require-explanation: true # require an explanation for nolint directives
+    require-specific: true # require nolint directives to be specific about which linter is being skipped
+  revive:
+    rules:
+      - name: indent-error-flow
+      - name: unexported-return
+        disabled: true
+      - name: unused-parameter
+      - name: unused-receiver
+issues:
+  exclude-rules:
+    - path: (.+)_test\.go
+      linters:
+        - dupl
+        - mnd
+        - lll
+    - path: internal/adapters/gemini/google_genai_adapter.go
+      linters:
+        - lll
