@@ -18,7 +18,7 @@ tasks:
     sources:
       - "./**/*.go"
     cmds:
-      - go install -v ./cmd/aicommitter
+      - go install -v ./
 
   setup:
     desc: Install tools needed for development
