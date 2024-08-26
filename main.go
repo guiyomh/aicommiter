@@ -1,9 +1,18 @@
 package main
 
 import (
+	"os"
+
 	"github.com/guiyomh/aicommitter/cmd"
 )
 
 func main() {
-	cmd.Execute()
+	rootCmd := cmd.NewRootCmd()
+	rootCmd.AddCommand(cmd.NewAnalyzeCmd())
+	rootCmd.AddCommand(cmd.NewDoctorCmd())
+
+	err := rootCmd.Execute()
+	if err != nil {
+		os.Exit(1)
+	}
 }
