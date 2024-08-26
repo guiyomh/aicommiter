@@ -8,6 +8,7 @@ import (
 	"fmt"
 
 	"github.com/guiyomh/aicommitter/internal/adapters/gemini"
+	"github.com/guiyomh/aicommitter/internal/domain"
 	"github.com/guiyomh/aicommitter/internal/services/commitmessage"
 	"github.com/guiyomh/aicommitter/internal/services/gitdiff"
 	"github.com/spf13/cobra"
@@ -23,14 +24,13 @@ and usage of using your command. For example:
 Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
-	Run: func(cmd *cobra.Command, args []string) {
-		apiKey, err := cmd.Flags().GetString("apiKey")
-		if err != nil {
-			cobra.CheckErr(err)
-		}
+	Run: func(cmd *cobra.Command, _ []string) {
+
+		config := cmd.Context().Value(domain.ConfigKey).(domain.Config)
+
 		model := "gemini-1.5-flash"
 		ctx := context.Background()
-		adapter, err := gemini.NewGoogleGenAIAdapter(ctx, apiKey, model)
+		adapter, err := gemini.NewGoogleGenAIAdapter(ctx, config.APIKey, model)
 		if err != nil {
 			cobra.CheckErr(err)
 		}
@@ -57,8 +57,4 @@ to quickly create a Cobra application.`,
 
 func init() {
 	rootCmd.AddCommand(analyzeCmd)
-
-	analyzeCmd.Flags().StringP("apiKey", "k", "", "Google GenAI API Key")
-	analyzeCmd.MarkFlagRequired("apiKey")
-
 }
