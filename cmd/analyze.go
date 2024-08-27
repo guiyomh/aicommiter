@@ -8,6 +8,7 @@ import (
 	"github.com/guiyomh/aicommitter/internal/domain"
 	"github.com/guiyomh/aicommitter/internal/services/commitmessage"
 	"github.com/guiyomh/aicommitter/internal/services/gitdiff"
+	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 )
 
@@ -39,6 +40,7 @@ to quickly create a Cobra application.`,
 			diff, err := diffGenerator.GenerateDiff()
 
 			if err != nil {
+				log.Error().Err(err).Msg("Error while generating diff")
 				cobra.CheckErr(err)
 			}
 
@@ -50,6 +52,7 @@ to quickly create a Cobra application.`,
 				options...,
 			)
 			if err != nil {
+				log.Error().Err(err).Msg("Error while generating commit message")
 				cobra.CheckErr(err)
 			}
 			fmt.Printf("Generated Commit Message:\n%s\n%s\n%s\n", commitMessage.Header, commitMessage.Body, commitMessage.Footer)

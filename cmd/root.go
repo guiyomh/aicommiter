@@ -6,14 +6,28 @@ import (
 	"github.com/guiyomh/aicommitter/internal/adapters/configloader"
 	"github.com/guiyomh/aicommitter/internal/domain"
 	"github.com/guiyomh/aicommitter/internal/services/configservice"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
+	"github.com/rs/zerolog/pkgerrors"
 	"github.com/spf13/cobra"
 )
 
+const (
+	normalVerbosity = 0
+	infoVerbosity   = 1
+	debugVerbosity  = 2
+	traceVerbosity  = 3
+)
+
 func NewRootCmd() *cobra.Command {
-	return &cobra.Command{
+	verboseCount := 0
+	cmd := &cobra.Command{
 		Use:   "aicommitter",
 		Short: "A tool to generate commit messages using AI",
 		PersistentPreRunE: func(cmd *cobra.Command, _ []string) error {
+			// Initialize the logger
+			initializeLogger(verboseCount, cmd)
+
 			// Initialize and load config using the service
 			loader := configloader.NewConfigLoader()
 			configService := configservice.NewConfigService(loader)
@@ -27,4 +41,31 @@ func NewRootCmd() *cobra.Command {
 			return nil
 		},
 	}
+
+	cmd.PersistentFlags().CountVarP(&verboseCount, "verbose", "v", "verbose output")
+
+	return cmd
+}
+
+func initializeLogger(verboseCount int, cmd *cobra.Command) {
+	level := zerolog.ErrorLevel
+	switch verboseCount {
+	case normalVerbosity:
+		level = zerolog.ErrorLevel
+	case infoVerbosity:
+		level = zerolog.InfoLevel
+	case debugVerbosity:
+		level = zerolog.DebugLevel
+	case traceVerbosity:
+		level = zerolog.TraceLevel
+	default:
+		level = zerolog.TraceLevel
+	}
+
+	if level == zerolog.TraceLevel {
+		zerolog.ErrorStackMarshaler = pkgerrors.MarshalStack
+	}
+	log.Logger = zerolog.New(zerolog.ConsoleWriter{Out: cmd.OutOrStdout()}).With().Timestamp().Logger()
+	zerolog.SetGlobalLevel(level)
+	log.Info().Msgf("Log level set to %s", level.String())
 }
