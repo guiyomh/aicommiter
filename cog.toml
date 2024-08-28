@@ -1,9 +1,9 @@
-branch_whitelist = []
+branch_whitelist = ["main"]
 disable_bump_commit = false
 disable_changelog = false
 from_latest_tag = false
 generate_mono_repository_global_tag = true
-ignore_merge_commits = false
+ignore_merge_commits = true
 post_bump_hooks = []
 post_package_bump_hooks = []
 pre_bump_hooks = []
@@ -21,7 +21,7 @@ owner = "guiyomh"
 path = "CHANGELOG.md"
 remote = "github.com"
 repository = "aicommitter"
-template = "remote"
+template = ".changelog.tpl"
 
 [bump_profiles]
 
