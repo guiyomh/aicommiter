@@ -8,6 +8,7 @@ import (
 	"github.com/guiyomh/aicommitter/internal/domain"
 	"github.com/guiyomh/aicommitter/internal/services/commitmessage"
 	"github.com/guiyomh/aicommitter/internal/services/gitdiff"
+	"github.com/guiyomh/aicommitter/internal/services/promptbuilder"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 )
@@ -29,7 +30,7 @@ to quickly create a Cobra application.`,
 
 			model := "gemini-1.5-flash"
 			ctx := context.Background()
-			adapter, err := gemini.NewGoogleGenAIAdapter(ctx, config.APIKey, model)
+			adapter, err := gemini.NewGoogleGenAIAdapter(ctx, config.APIKey, model, promptbuilder.NewDefaultPromptBuilder())
 			if err != nil {
 				cobra.CheckErr(err)
 			}

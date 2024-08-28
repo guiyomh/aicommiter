@@ -12,26 +12,33 @@ import (
 )
 
 type GoogleGenAIAdapter struct {
-	client *genai.Client
-	model  string
+	client        *genai.Client
+	model         string
+	promptBuilder ports.PromptBuilder
 }
 
-func NewGoogleGenAIAdapter(ctx context.Context, apiKey string, model string) (ports.MessageGenerator, error) {
+func NewGoogleGenAIAdapter(
+	ctx context.Context,
+	apiKey string,
+	model string,
+	builder ports.PromptBuilder,
+) (ports.MessageGenerator, error) {
 	client, err := genai.NewClient(ctx, option.WithAPIKey(apiKey))
 	if err != nil {
 		return nil, err
 	}
 
 	return &GoogleGenAIAdapter{
-		client: client,
-		model:  model,
+		client:        client,
+		model:         model,
+		promptBuilder: builder,
 	}, nil
 }
 
 func (g *GoogleGenAIAdapter) Generate(ctx context.Context, prompt domain.Prompt) (domain.CommitMessage, error) {
 	defer g.client.Close()
 
-	fullPrompt := buildPrompt(prompt)
+	fullPrompt := g.promptBuilder.Build(prompt)
 
 	resp, err := g.client.GenerativeModel(g.model).GenerateContent(ctx, genai.Text(fullPrompt))
 	if err != nil {
@@ -57,7 +64,7 @@ func (g *GoogleGenAIAdapter) Generate(ctx context.Context, prompt domain.Prompt)
 	}, nil
 }
 
-// parseCommitMessage décompose le message de commit en header, body, et footer
+// parseCommitMessage splits the content into header, body, and footer
 func parseCommitMessage(content string) (header, body, footer string) {
 	// Diviser le contenu en lignes
 	lines := strings.Split(strings.Trim(content, "`\n"), "\n")
@@ -83,34 +90,4 @@ func parseCommitMessage(content string) (header, body, footer string) {
 	footer = strings.Join(footerLines, "\n")
 
 	return header, strings.TrimSpace(body), strings.TrimSpace(footer)
-}
-
-// buildPrompt construit le texte du prompt en combinant le diff avec les informations supplémentaires du prompt.
-func buildPrompt(p domain.Prompt) string {
-	prompt := `Based on the following git diff --staged output, generate a commit message following the Angular commit message convention.
-The commit message should include:
-A header with a <type>(<scope>): <short summary> format.
-A detailed body explaining the motivation for the change.
-If applicable, a footer with information on breaking changes, deprecations, or issue references.
-`
-
-	// Ajoutez des métadonnées supplémentaires si disponibles
-	if p.CommitType != "" {
-		prompt += "\nType: " + p.CommitType
-	}
-	if p.Scope != "" {
-		prompt += "\nScope: " + p.Scope
-	}
-	if p.IssueNumber != "" {
-		prompt += "\nIssue: #" + p.IssueNumber
-	}
-	if p.Language != "" {
-		prompt += "\nGenerate the commit message with  " + p.Language + " language."
-	}
-
-	prompt += "\ngit diff --staged output:\n```\n"
-	prompt += p.Diff.Content
-	prompt += "\n```"
-
-	return prompt
 }

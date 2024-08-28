@@ -86,6 +86,3 @@ issues:
         - dupl
         - mnd
         - lll
-    - path: internal/adapters/gemini/google_genai_adapter.go
-      linters:
-        - lll
