@@ -2,59 +2,49 @@ package gemini
 
 import (
 	"context"
-	"fmt"
 	"strings"
 
-	"github.com/google/generative-ai-go/genai"
 	"github.com/guiyomh/aicommitter/internal/domain"
 	"github.com/guiyomh/aicommitter/internal/ports"
-	"google.golang.org/api/option"
+	"github.com/tmc/langchaingo/llms"
+	"github.com/tmc/langchaingo/llms/googleai"
 )
 
 type GoogleGenAIAdapter struct {
-	client        *genai.Client
-	model         string
+	llm           *googleai.GoogleAI
 	promptBuilder ports.PromptBuilder
 }
 
 func NewGoogleGenAIAdapter(
 	ctx context.Context,
 	apiKey string,
-	model string,
 	builder ports.PromptBuilder,
 ) (ports.MessageGenerator, error) {
-	client, err := genai.NewClient(ctx, option.WithAPIKey(apiKey))
+	llm, err := googleai.New(ctx, googleai.WithAPIKey(apiKey))
 	if err != nil {
 		return nil, err
 	}
 
 	return &GoogleGenAIAdapter{
-		client:        client,
-		model:         model,
+		llm:           llm,
 		promptBuilder: builder,
 	}, nil
 }
 
 func (g *GoogleGenAIAdapter) Generate(ctx context.Context, prompt domain.Prompt) (domain.CommitMessage, error) {
-	defer g.client.Close()
-
 	fullPrompt := g.promptBuilder.Build(prompt)
 
-	resp, err := g.client.GenerativeModel(g.model).GenerateContent(ctx, genai.Text(fullPrompt))
+	completion, err := llms.GenerateFromSinglePrompt(
+		ctx,
+		g.llm,
+		fullPrompt,
+	)
 	if err != nil {
 		return domain.CommitMessage{}, err
 	}
 
-	// Suppose the response contains just one candidate
-	if len(resp.Candidates) == 0 || resp.Candidates[0].Content == nil {
-		return domain.CommitMessage{}, fmt.Errorf("no content generated")
-	}
-
-	// Récupérer la seule partie générée
-	content := fmt.Sprint(resp.Candidates[0].Content.Parts[0])
-
 	// Décomposer le contenu en header, body et footer
-	header, body, footer := parseCommitMessage(content)
+	header, body, footer := parseCommitMessage(completion)
 
 	// Logique simple pour construire le message à partir de la réponse
 	return domain.CommitMessage{

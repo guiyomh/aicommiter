@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/guiyomh/aicommitter/internal/adapters/gemini"
 	"github.com/guiyomh/aicommitter/internal/domain"
 	"github.com/guiyomh/aicommitter/internal/services/commitmessage"
 	"github.com/guiyomh/aicommitter/internal/services/gitdiff"
@@ -27,10 +26,19 @@ This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 		Run: func(cmd *cobra.Command, _ []string) {
 			config := cmd.Context().Value(domain.ConfigKey).(domain.Config)
-
-			model := "gemini-1.5-flash"
 			ctx := context.Background()
-			adapter, err := gemini.NewGoogleGenAIAdapter(ctx, config.APIKey, model, promptbuilder.NewDefaultPromptBuilder())
+
+			var adapterType commitmessage.AdapterType
+			err := adapterType.FromString(cmd.Flag("adapter").Value.String())
+			if err != nil {
+				cobra.CheckErr(err)
+			}
+
+			pb := promptbuilder.NewDefaultPromptBuilder(
+				promptbuilder.WithSpecification(promptbuilder.Conventional),
+			)
+
+			adapter, err := commitmessage.CreateAdapter(ctx, adapterType, pb, config.APIKey)
 			if err != nil {
 				cobra.CheckErr(err)
 			}
@@ -64,6 +72,7 @@ to quickly create a Cobra application.`,
 	cmd.Flags().StringP("type", "t", "", "Force the type of the commit")
 	cmd.Flags().StringP("issue", "i", "", "Add the issue number of the commit")
 	cmd.Flags().StringP("language", "l", "", "Force the language of the message")
+	cmd.Flags().StringP("adapter", "a", "google_genai", "The adapter to use to generate the commit message")
 
 	return cmd
 }
