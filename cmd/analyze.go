@@ -2,13 +2,11 @@ package cmd
 
 import (
 	"context"
-	"fmt"
 
-	"github.com/guiyomh/aicommitter/internal/domain"
-	"github.com/guiyomh/aicommitter/internal/services/commitmessage"
-	"github.com/guiyomh/aicommitter/internal/services/gitdiff"
-	"github.com/guiyomh/aicommitter/internal/services/promptbuilder"
-	"github.com/rs/zerolog/log"
+	"github.com/guiyomh/aicommitter/internal/domain/entities"
+	"github.com/guiyomh/aicommitter/internal/domain/services/commitmessage"
+	"github.com/guiyomh/aicommitter/internal/domain/services/promptbuilder"
+	"github.com/guiyomh/aicommitter/internal/domain/usecases/analyze"
 	"github.com/spf13/cobra"
 )
 
@@ -25,46 +23,18 @@ Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 		Run: func(cmd *cobra.Command, _ []string) {
-			config := cmd.Context().Value(domain.ConfigKey).(domain.Config)
+
+			config := cmd.Context().Value(entities.ConfigKey).(entities.Config)
 			ctx := context.Background()
 
-			var adapterType commitmessage.AdapterType
-			err := adapterType.FromString(cmd.Flag("adapter").Value.String())
-			if err != nil {
-				cobra.CheckErr(err)
+			usecase := analyze.New()
+			input := analyze.Input{
+				AdapterType:         commitmessage.GoogleGenAI,
+				CommitSpecification: promptbuilder.Conventional,
+				CommitOptions:       buildAnalyzeOptions(cmd),
+				ApiKey:              config.APIKey,
 			}
-
-			pb := promptbuilder.NewDefaultPromptBuilder(
-				promptbuilder.WithSpecification(promptbuilder.Conventional),
-			)
-
-			adapter, err := commitmessage.CreateAdapter(ctx, adapterType, pb, config.APIKey)
-			if err != nil {
-				cobra.CheckErr(err)
-			}
-
-			service := commitmessage.NewCommitMessageService(adapter)
-
-			diffGenerator := gitdiff.NewGitDiffGenerator()
-			diff, err := diffGenerator.GenerateDiff()
-
-			if err != nil {
-				log.Error().Err(err).Msg("Error while generating diff")
-				cobra.CheckErr(err)
-			}
-
-			options := buildAnalyzeOptions(cmd)
-
-			commitMessage, err := service.CreateCommitMessage(
-				ctx,
-				diff,
-				options...,
-			)
-			if err != nil {
-				log.Error().Err(err).Msg("Error while generating commit message")
-				cobra.CheckErr(err)
-			}
-			fmt.Printf("Generated Commit Message:\n%s\n%s\n%s\n", commitMessage.Header, commitMessage.Body, commitMessage.Footer)
+			usecase.Analyze(ctx, input)
 		},
 	}
 
@@ -77,8 +47,8 @@ to quickly create a Cobra application.`,
 	return cmd
 }
 
-func buildAnalyzeOptions(cmd *cobra.Command) []commitmessage.CommitMessageOption {
-	options := make([]commitmessage.CommitMessageOption, 0)
+func buildAnalyzeOptions(cmd *cobra.Command) []commitmessage.Option {
+	options := make([]commitmessage.Option, 0)
 
 	scope := cmd.Flags().Lookup("scope")
 	if scope != nil {

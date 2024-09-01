@@ -1,9 +1,11 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
-	"os/exec"
 
+	myerrors "github.com/guiyomh/aicommitter/internal/domain/errors"
+	"github.com/guiyomh/aicommitter/internal/domain/usecases/doctor"
 	"github.com/spf13/cobra"
 )
 
@@ -13,19 +15,18 @@ func NewDoctorCmd() *cobra.Command {
 		Use:   "doctor",
 		Short: "Check if the environment is properly set up",
 		Run: func(_ *cobra.Command, _ []string) {
-			// Check if Git is installed
-			_, err := exec.LookPath("git")
-			if err != nil {
-				fmt.Println("❌ Git is not installed. Please install Git.")
+
+			var errorCollection *myerrors.ErrorCollection
+			usecase := doctor.New()
+			err := usecase.Execute()
+			if errors.As(err, &errorCollection) {
+				fmt.Println("❌ Doctor found some issues:")
+				for _, e := range errorCollection.Errors() {
+					fmt.Println(e.Error())
+				}
 				return
 			}
-			// Check Git version
-			out, err := exec.Command("git", "--version").Output()
-			if err != nil {
-				fmt.Println("❌ Failed to get Git version.")
-				return
-			}
-			fmt.Printf("✅ Git is installed: %s", out)
+			fmt.Println("✅ Doctor found no issues")
 		},
 	}
 }

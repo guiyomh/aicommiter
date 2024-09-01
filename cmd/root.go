@@ -3,9 +3,10 @@ package cmd
 import (
 	"context"
 
-	"github.com/guiyomh/aicommitter/internal/adapters/configloader"
-	"github.com/guiyomh/aicommitter/internal/domain"
-	"github.com/guiyomh/aicommitter/internal/services/configservice"
+	"github.com/guiyomh/aicommitter/internal/adapters/config"
+	"github.com/guiyomh/aicommitter/internal/domain/entities"
+	"github.com/guiyomh/aicommitter/internal/domain/services/configservice"
+
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/rs/zerolog/pkgerrors"
@@ -29,13 +30,13 @@ func NewRootCmd() *cobra.Command {
 			initializeLogger(verboseCount, cmd)
 
 			// Initialize and load config using the service
-			loader := configloader.NewConfigLoader()
+			loader := config.NewLoader()
 			configService := configservice.NewConfigService(loader)
 			config, err := configService.GetConfig()
 			if err != nil {
 				return err
 			}
-			ctx := context.WithValue(cmd.Context(), domain.ConfigKey, config)
+			ctx := context.WithValue(cmd.Context(), entities.ConfigKey, config)
 			cmd.SetContext(ctx)
 
 			return nil
