@@ -137,10 +137,11 @@ func (b *DefaultPromptBuilder) Build(p domain.Prompt) string {
 	if p.Language != "" {
 		prompt += "\nUse  " + p.Language + " language for the commit message"
 	}
-	log.Debug().Str("prompt", prompt).Msg("Prompt created")
-	prompt += "\ngit diff --staged output:\n```\n"
-	prompt += p.Diff.Content
-	prompt += "\n```"
+
+	// prompt += "\ngit diff --staged output:\n```\n"
+	// prompt += p.Diff.Content
+	// prompt += "\n```"
+
 	log.Trace().Str("prompt", prompt).Msg("Prompt created")
 
 	return prompt

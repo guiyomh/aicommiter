@@ -1,4 +1,4 @@
-package gemini
+package commitmessage
 
 import (
 	"testing"
@@ -6,7 +6,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestParseCommitMessage(t *testing.T) {
+func TestCommitMessageService_parseCommitMessage(t *testing.T) {
 	tests := []struct {
 		name    string
 		content string
@@ -107,10 +107,10 @@ BREAKING CHANGE: Refactored utility functions, some of which have changed signat
 		},
 	}
 
+	service := CommitMessageService{}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			gotHeader, gotBody, gotFooter := parseCommitMessage(tt.content)
-
+			gotHeader, gotBody, gotFooter := service.parseCommitMessage(tt.content)
 			assert.Equal(t, tt.want.header, gotHeader, "parseCommitMessage() header = %v, want %v", gotHeader, tt.want.header)
 			assert.Equal(t, tt.want.body, gotBody, "parseCommitMessage() body = %v, want %v", gotBody, tt.want.body)
 			assert.Equal(t, tt.want.footer, gotFooter, "parseCommitMessage() footer = %v, want %v", gotFooter, tt.want.footer)

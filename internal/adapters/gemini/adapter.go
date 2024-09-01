@@ -2,10 +2,10 @@ package gemini
 
 import (
 	"context"
-	"strings"
 
 	"github.com/guiyomh/aicommitter/internal/domain"
 	"github.com/guiyomh/aicommitter/internal/ports"
+	"github.com/rs/zerolog/log"
 	"github.com/tmc/langchaingo/llms"
 	"github.com/tmc/langchaingo/llms/googleai"
 )
@@ -20,7 +20,7 @@ func NewGoogleGenAIAdapter(
 	apiKey string,
 	builder ports.PromptBuilder,
 ) (ports.MessageGenerator, error) {
-	llm, err := googleai.New(ctx, googleai.WithAPIKey(apiKey))
+	llm, err := googleai.New(ctx, googleai.WithAPIKey(apiKey), googleai.WithDefaultModel("gemini-1.5-pro"))
 	if err != nil {
 		return nil, err
 	}
@@ -31,53 +31,30 @@ func NewGoogleGenAIAdapter(
 	}, nil
 }
 
-func (g *GoogleGenAIAdapter) Generate(ctx context.Context, prompt domain.Prompt) (domain.CommitMessage, error) {
+func (g *GoogleGenAIAdapter) Generate(ctx context.Context, prompt domain.Prompt) (string, error) {
 	fullPrompt := g.promptBuilder.Build(prompt)
 
-	completion, err := llms.GenerateFromSinglePrompt(
+	content := []llms.MessageContent{
+		llms.TextParts(llms.ChatMessageTypeSystem, fullPrompt),
+		llms.TextParts(llms.ChatMessageTypeHuman, prompt.Diff.Content),
+	}
+
+	response, err := g.llm.GenerateContent(
 		ctx,
-		g.llm,
-		fullPrompt,
+		content,
+		llms.WithTemperature(0),
+		llms.WithTopP(0.1),
 	)
 	if err != nil {
-		return domain.CommitMessage{}, err
+		log.Error().Err(err).Any("response", response).Msg("failed to generate content")
+		return "", err
 	}
 
-	// Décomposer le contenu en header, body et footer
-	header, body, footer := parseCommitMessage(completion)
-
-	// Logique simple pour construire le message à partir de la réponse
-	return domain.CommitMessage{
-		Header: header,
-		Body:   body,
-		Footer: footer,
-	}, nil
-}
-
-// parseCommitMessage splits the content into header, body, and footer
-func parseCommitMessage(content string) (header, body, footer string) {
-	// Diviser le contenu en lignes
-	lines := strings.Split(strings.Trim(content, "`\n"), "\n")
-
-	// Identifier l'index des parties
-	header = lines[0] // Première ligne comme header
-	bodyLines := []string{}
-	footerLines := []string{}
-	footerStart := false
-
-	for _, line := range lines[1:] {
-		if strings.HasPrefix(line, "BREAKING CHANGE:") || strings.HasPrefix(line, "Fixes #") {
-			footerStart = true
-		}
-		if footerStart {
-			footerLines = append(footerLines, line)
-		} else {
-			bodyLines = append(bodyLines, line)
-		}
+	var completion string
+	for _, choice := range response.Choices {
+		completion += choice.Content
 	}
 
-	body = strings.Join(bodyLines, "\n")
-	footer = strings.Join(footerLines, "\n")
+	return completion, nil
 
-	return header, strings.TrimSpace(body), strings.TrimSpace(footer)
 }

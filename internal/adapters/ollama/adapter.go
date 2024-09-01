@@ -2,7 +2,6 @@ package ollama
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/guiyomh/aicommitter/internal/domain"
 	"github.com/guiyomh/aicommitter/internal/ports"
@@ -26,18 +25,22 @@ func NewOllamaAdapter(builder ports.PromptBuilder) (*OllamaAdapter, error) {
 	}, nil
 }
 
-func (o *OllamaAdapter) Generate(ctx context.Context, prompt domain.Prompt) (domain.CommitMessage, error) {
+func (o *OllamaAdapter) Generate(ctx context.Context, prompt domain.Prompt) (string, error) {
 	fullPrompt := o.promptBuilder.Build(prompt)
-	completion, err := llms.GenerateFromSinglePrompt(
-		ctx,
-		o.llm,
-		fullPrompt,
-	)
-	if err != nil {
-		return domain.CommitMessage{}, err
+	content := []llms.MessageContent{
+		llms.TextParts(llms.ChatMessageTypeSystem, fullPrompt),
+		llms.TextParts(llms.ChatMessageTypeHuman, prompt.Diff.Content),
 	}
 
-	fmt.Println(completion)
+	response, err := o.llm.GenerateContent(ctx, content)
+	if err != nil {
+		return "", err
+	}
 
-	return domain.CommitMessage{}, nil
+	var completion string
+	for _, choice := range response.Choices {
+		completion += choice.Content
+	}
+
+	return completion, nil
 }
